@@ -1,2 +1,4 @@
-# videometrics
-Laravel API code to record video usage
+# VideoMetrics
+A project to record the usage of Vimeo and YouTube videos on a web page.
+
+
