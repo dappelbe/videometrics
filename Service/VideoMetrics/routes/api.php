@@ -14,5 +14,6 @@ use Illuminate\Http\Request;
 */
 
 Route::group(['prefix' => 'v1','namespace' => 'API'], function(){
-
+    Route::post('Watched','WatchedController@store');
+    Route::get('Watched','WatchedController@index');
 });
