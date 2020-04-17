@@ -32,6 +32,14 @@
             wumAmpSendClickEvent( pageTitle, linkID, linkDestination, true);
         });
 
+        //-- ==================================================== --//
+        //-- Page unload event                                    --//
+        //-- ==================================================== --//
+        $(window).on('beforeunload', function(){
+            let pageTitle =  window.location.pathname;
+            wumAmpSendPageUnload( pageTitle, true);
+        });
+
         //-- ===================================================== --//
         //-- The function that we will use to send data           --//
         //-- pageTitle:      This is the name of the page that    --//
@@ -70,6 +78,54 @@
                 console.error( "WUMAMP -> " + err.message);
             }
         }
+
+        //-- ===================================================== --//
+        //-- The function that we will use to send data           --//
+        //-- pageTitle:      This is the name of the page that    --//
+        //--                 the the user has visited             --//
+        //-- debug:          If true will print debug information --//
+        //-- ==================================================== --//
+        function wumAmpSendPageUnload( pageTitle = 'Not Set',
+                                       debug = false) {
+            let callTime = new Date();
+            let callTimeToString = callTime.getFullYear()
+                                  + '-'
+                                  + callTime.getMonth()
+                                  + '-'
+                                  + callTime.getDate()
+                                  + ' '
+                                  + callTime.getHours()
+                                  + ':'
+                                  + callTime.getMinutes()
+                                  + ':'
+                                  + callTime.getSeconds();
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMAMP: pageTitle         => " + pageTitle );
+                console.log( "WUMAMP: unloadPage event  => Called at " +  callTimeToString );
+                console.log( "================================================" );
+            }
+
+            let pageProperties = {
+                'pageTitle'  : pageTitle,
+                'unloadTime' : callTimeToString
+            };
+
+            try {
+                amplitude.getInstance().logEvent('leavingPage', pageProperties);
+                if ( debug ) {
+                    console.log( "================================================" );
+                    console.log( "== WUMAMP: leavingPage event sent             ==" );
+                    console.log( "================================================" );
+                }
+            } catch ( err ) {
+                console.error( "WUMAMP -> " + err.message);
+            }
+        }
+
+
+
+
     });
 
 })(jQuery);
