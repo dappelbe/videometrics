@@ -22,6 +22,7 @@
             recordAClicks: true,
             recordLeavingPage: true,
             recordIdleTimeOnPage: true,
+            whenToReportIdleTime : 10,
             debugMode: false,
         }, options);
 
@@ -65,7 +66,7 @@
         function timerIncrement() {
             idleTime++;
             if ( settings.useAmplitude ) {
-                amplitudeSendPageIdleTime( pageTitle, idleTime, settings.debugMode);
+                amplitudeSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
             }
         }
 
