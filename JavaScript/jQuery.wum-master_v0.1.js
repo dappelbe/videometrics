@@ -18,7 +18,7 @@
             amplitudeObject : amplitude,
             useAmplitude: true,
             useMatamo:false,
-            useServerLogs: false,
+            useServerLogs: true,
             recordAClicks: true,
             recordLeavingPage: true,
             recordIdleTimeOnPage: true,
@@ -43,6 +43,9 @@
                     if ( settings.useAmplitude ) {
                         amplitudeSendClickEvent( pageTitle, linkID, linkDestination, settings.debugMode);
                     }
+                    if ( settings.useServerLogs ) {
+                        serverLogSendClickEvent(pageTitle, linkID, linkDestination, settings.debugMode );
+                    }
                 });
             }
 
@@ -50,6 +53,9 @@
                 $(window).on('beforeunload', function(){
                     if ( settings.useAmplitude) {
                         amplitudeSendPageUnload( pageTitle, settings.debugMode);
+                    }
+                    if ( settings.useServerLogs ) {
+                        serverLogSendPageUnload( pageTitle, settings.debugMode);
                     }
                 });
             }
@@ -68,7 +74,146 @@
             if ( settings.useAmplitude ) {
                 amplitudeSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
             }
+            if ( settings.useServerLogs ) {
+                serverLogSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
+            }
         }
+
+        /*-- PRIVATE START ServerLog Functions --*/
+        function serverLogSendClickEvent( pageTitle = 'Not Set',
+                                          linkID = '',
+                                          linkDestination = '',
+                                          debug = false) {
+
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMSL: pageTitle         => " + pageTitle );
+                console.log( "WUMSL: linkID            => " + linkID );
+                console.log( "WUMSL: linkDestination   => " + linkDestination );
+                console.log( "================================================" );
+            }
+
+            try {
+
+                //-- Get the current URL
+                let loc = window.location.href;
+                //-- check to see if we have a parameter already
+                if ( loc.indexOf("?") > 0 ) {
+                    loc = loc.concat('&ClickedOnLinkId=')
+                } else {
+                    loc = loc.concat('?ClickedOnLinkId=')
+                }
+                loc = loc.concat( linkID );
+                loc = loc.concat( "&ClickedOnLinkHref=").concat( linkDestination );
+
+                $.get(loc);
+                if ( debug ) {
+                    console.log( "================================================" );
+                    console.log( "== WUMSL: link-clicked event sent => " + loc );
+                    console.log( "================================================" );
+                }
+            } catch ( err ) {
+                console.error( "WUMAMP -> " + err.message);
+            }
+        }
+
+        function serverLogSendPageUnload(pageTitle = 'Not Set',
+                                         debug = false) {
+            //-- Get the current URL
+            let loc = window.location.href;
+            //-- check to see if we have a parameter already
+            if ( loc.indexOf("?") > 0 ) {
+                loc = loc.concat('&LeftPageAt=')
+            } else {
+                loc = loc.concat('?LeftPageAt=')
+            }
+            //-- Get the current date and time
+            let callTime = new Date();
+            let callTimeToString = callTime.getFullYear()
+                + '-'
+                + callTime.getMonth()
+                + '-'
+                + callTime.getDate()
+                + 'T'
+                + callTime.getHours()
+                + ':'
+                + callTime.getMinutes()
+                + ':'
+                + callTime.getSeconds();
+            loc = loc.concat(callTimeToString);
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMSL: pageTitle  => " + pageTitle );
+                console.log( "WUMSL: calling    => " + loc );
+                console.log( "================================================" );
+            }
+            try {
+                $.get(loc);
+                if (debug) {
+                    console.log("================================================");
+                    console.log("WUMSL: called page");
+                    console.log("================================================");
+                }
+            } catch (err) {
+                console.error("WUMSL -> " + err.message);
+            }
+
+        }
+
+        function serverLogSendPageIdleTime( pageTitle = 'Not Set',
+                                            howLongSinceInactive = 0,
+                                            reportWhenInactiveFor = 10,
+                                            debug = false) {
+            let callTime = new Date();
+            let callTimeToString = callTime.getFullYear()
+                + '-'
+                + callTime.getMonth()
+                + '-'
+                + callTime.getDate()
+                + ' '
+                + callTime.getHours()
+                + ':'
+                + callTime.getMinutes()
+                + ':'
+                + callTime.getSeconds();
+
+            //-- Get the current URL
+            let loc = window.location.href;
+            //-- check to see if we have a parameter already
+            if ( loc.indexOf("?") > 0 ) {
+                loc = loc.concat('&IdlePageForMins=')
+            } else {
+                loc = loc.concat('?IdlePageForMins=')
+            }
+            loc = loc.concat(callTimeToString);
+
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMSL: pageTitle                => " + pageTitle );
+                console.log( "WUMSL: inactiveTime event       => Called at " +  callTimeToString );
+                console.log( "WUMSL: Inactive for             => " + howLongSinceInactive + ' minutes');
+                console.log( "WUMSL: Will trigger event after => " + reportWhenInactiveFor + ' minutes');
+                console.log( "================================================" );
+            }
+
+            if ( howLongSinceInactive >= reportWhenInactiveFor ) {
+                try {
+                    $.get(loc);
+                    if (debug) {
+                        console.log("================================================");
+                        console.log("== WUMSl: inactiveTime event sent");
+                        console.log("== WUMSL: pageTitle                => " + pageTitle);
+                        console.log("== WUMSL: inactiveTime event       => Called at " + callTimeToString);
+                        console.log("== WUMSL: Inactive for             => " + howLongSinceInactive + ' minutes');
+                        console.log("== WUMSL: URL Called               => " + loc );
+                        console.log("================================================");
+                    }
+                } catch (err) {
+                    console.error("WUMSL -> " + err.message);
+                }
+            }
+        }
+        /*-- PRIVATE END Sever Log Functions --*/
 
         /*-- PRIVATE START Amplitude Functions --*/
         function amplitudeSendClickEvent( pageTitle = 'Not Set',
