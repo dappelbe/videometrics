@@ -17,7 +17,7 @@
         let settings = $.extend({
             amplitudeObject : amplitude,
             useAmplitude: true,
-            useMatamo:false,
+            useMatamo:true,
             useServerLogs: true,
             recordAClicks: true,
             recordLeavingPage: true,
@@ -47,6 +47,10 @@
                         serverLogSendClickEvent(pageTitle, linkID, linkDestination, settings.debugMode );
                     }
                 });
+                if ( settings.useMatamo ) {
+                    //-- Link tracking is configured via the dashboard and should
+                    //-- be enabled by default
+                }
             }
 
             if ( settings.recordLeavingPage) {
@@ -56,6 +60,9 @@
                     }
                     if ( settings.useServerLogs ) {
                         serverLogSendPageUnload( pageTitle, settings.debugMode);
+                    }
+                    if ( settings.useMatamo ) {
+                        matamoSendPageUnload( pageTitle, settings.debugMode);
                     }
                 });
             }
@@ -76,6 +83,9 @@
             }
             if ( settings.useServerLogs ) {
                 serverLogSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
+            }
+            if ( settings.useMatamo ) {
+                matamoSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
             }
         }
 
@@ -131,7 +141,7 @@
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
                 + '-'
-                + callTime.getMonth()
+                + callTime.getMonth() + 1
                 + '-'
                 + callTime.getDate()
                 + 'T'
@@ -167,7 +177,7 @@
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
                 + '-'
-                + callTime.getMonth()
+                + callTime.getMonth() + 1
                 + '-'
                 + callTime.getDate()
                 + ' '
@@ -185,7 +195,7 @@
             } else {
                 loc = loc.concat('?IdlePageForMins=')
             }
-            loc = loc.concat(callTimeToString);
+            loc = loc.concat(howLongSinceInactive);
 
             if ( debug ) {
                 console.log( "================================================" );
@@ -252,7 +262,7 @@
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
                 + '-'
-                + callTime.getMonth()
+                + callTime.getMonth() + 1
                 + '-'
                 + callTime.getDate()
                 + ' '
@@ -292,7 +302,7 @@
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
                 + '-'
-                + callTime.getMonth()
+                + callTime.getMonth() + 1
                 + '-'
                 + callTime.getDate()
                 + ' '
@@ -333,6 +343,87 @@
             }
         }
         /*-- PRIVATE END Amplitude Functions   --*/
+
+        /*-- PRIVATE Start Matamo Functions    --*/
+        function matamoSendPageUnload(pageTitle = 'Not Set',
+                                         debug = false) {
+            let callTime = new Date();
+            let callTimeToString = callTime.getFullYear()
+                + '-'
+                + callTime.getMonth() + 1
+                + '-'
+                + callTime.getDate()
+                + ' '
+                + callTime.getHours()
+                + ':'
+                + callTime.getMinutes()
+                + ':'
+                + callTime.getSeconds();
+
+            //-- Get the current URL
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMMAT: pageTitle  => " + pageTitle );
+                console.log( "================================================" );
+            }
+            try {
+                _paq.push(['trackEvent', 'PageUnload', pageTitle, callTimeToString]);
+                if (debug) {
+                    console.log("================================================");
+                    console.log("WUMMAT: called page");
+                    console.log("================================================");
+                }
+            } catch (err) {
+                console.error("WUMMAT -> " + err.message);
+            }
+
+        }
+
+        function matamoSendPageIdleTime( pageTitle = 'Not Set',
+                                            howLongSinceInactive = 0,
+                                            reportWhenInactiveFor = 10,
+                                            debug = false) {
+            let callTime = new Date();
+            let callTimeToString = callTime.getFullYear()
+                + '-'
+                + callTime.getMonth() + 1
+                + '-'
+                + callTime.getDate()
+                + ' '
+                + callTime.getHours()
+                + ':'
+                + callTime.getMinutes()
+                + ':'
+                + callTime.getSeconds();
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMMAT: pageTitle                => " + pageTitle );
+                console.log( "WUMMAT: inactiveTime event       => Called at " +  callTimeToString );
+                console.log( "WUMMAT: Inactive for             => " + howLongSinceInactive + ' minutes');
+                console.log( "WUMMAT: Will trigger event after => " + reportWhenInactiveFor + ' minutes');
+                console.log( "================================================" );
+            }
+
+
+            if ( howLongSinceInactive >= reportWhenInactiveFor ) {
+                try {
+                    _paq.push(['trackEvent', 'PageIdleInMins', pageTitle, howLongSinceInactive]);
+                    if (debug) {
+                        console.log("================================================");
+                        console.log("== WUMMAT: inaciveTime event sent");
+                        console.log("== WUMMAT: pageTitle                => " + pageTitle);
+                        console.log("== WUMMAT: inactiveTime event       => Called at " + callTimeToString);
+                        console.log("== WUMMAT: Inactive for             => " + howLongSinceInactive + ' minutes');
+                        console.log("================================================");
+                    }
+                } catch (err) {
+                    console.error("WUMMAT -> " + err.message);
+                }
+            }
+        }
+
+        /*-- PRIVATE End Matamo Functions    --*/
+
     return this;
     };
 })(jQuery);
