@@ -19,10 +19,12 @@
             useAmplitude: true,
             useMatamo:true,
             useServerLogs: true,
+            recordPageLoad: true,
             recordAClicks: true,
             recordLeavingPage: true,
             recordIdleTimeOnPage: true,
             whenToReportIdleTime : 10,
+            userID : 0,
             debugMode: false,
         }, options);
 
@@ -41,10 +43,10 @@
                         linkDestination = '';
                     }
                     if ( settings.useAmplitude ) {
-                        amplitudeSendClickEvent( pageTitle, linkID, linkDestination, settings.debugMode);
+                        amplitudeSendClickEvent( pageTitle, linkID, linkDestination, settings.userID, settings.debugMode);
                     }
                     if ( settings.useServerLogs ) {
-                        serverLogSendClickEvent(pageTitle, linkID, linkDestination, settings.debugMode );
+                        serverLogSendClickEvent(pageTitle, linkID, linkDestination, settings.userID, settings.debugMode );
                     }
                 });
                 if ( settings.useMatamo ) {
@@ -56,13 +58,13 @@
             if ( settings.recordLeavingPage) {
                 $(window).on('beforeunload', function(){
                     if ( settings.useAmplitude) {
-                        amplitudeSendPageUnload( pageTitle, settings.debugMode);
+                        amplitudeSendPageUnload( pageTitle, settings.userID, settings.debugMode);
                     }
                     if ( settings.useServerLogs ) {
-                        serverLogSendPageUnload( pageTitle, settings.debugMode);
+                        serverLogSendPageUnload( pageTitle, settings.userID, settings.debugMode);
                     }
                     if ( settings.useMatamo ) {
-                        matamoSendPageUnload( pageTitle, settings.debugMode);
+                        matamoSendPageUnload( pageTitle, settings.userID, settings.debugMode);
                     }
                 });
             }
@@ -79,13 +81,13 @@
         function timerIncrement() {
             idleTime++;
             if ( settings.useAmplitude ) {
-                amplitudeSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
+                amplitudeSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.userID, settings.debugMode);
             }
             if ( settings.useServerLogs ) {
-                serverLogSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
+                serverLogSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.userID, settings.debugMode);
             }
             if ( settings.useMatamo ) {
-                matamoSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.debugMode);
+                matamoSendPageIdleTime( pageTitle, idleTime, settings.whenToReportIdleTime, settings.userID, settings.debugMode);
             }
         }
 
@@ -93,6 +95,7 @@
         function serverLogSendClickEvent( pageTitle = 'Not Set',
                                           linkID = '',
                                           linkDestination = '',
+                                          userid = 0,
                                           debug = false) {
 
             if ( debug ) {
@@ -100,6 +103,7 @@
                 console.log( "WUMSL: pageTitle         => " + pageTitle );
                 console.log( "WUMSL: linkID            => " + linkID );
                 console.log( "WUMSL: linkDestination   => " + linkDestination );
+                console.log( "WUMSL: UserID            => " + userid );
                 console.log( "================================================" );
             }
 
@@ -109,9 +113,10 @@
                 let loc = window.location.href;
                 //-- check to see if we have a parameter already
                 if ( loc.indexOf("?") > 0 ) {
-                    loc = loc.concat('&ClickedOnLinkId=')
+                    loc = loc.concat('&ClickedOnLinkId=');
                 } else {
-                    loc = loc.concat('?ClickedOnLinkId=')
+                    loc = loc.concat('?UserID=').concat(userid);
+                    loc = loc.concat('&ClickedOnLinkId=');
                 }
                 loc = loc.concat( linkID );
                 loc = loc.concat( "&ClickedOnLinkHref=").concat( linkDestination );
@@ -128,6 +133,7 @@
         }
 
         function serverLogSendPageUnload(pageTitle = 'Not Set',
+                                         userid = 0,
                                          debug = false) {
             //-- Get the current URL
             let loc = window.location.href;
@@ -135,7 +141,8 @@
             if ( loc.indexOf("?") > 0 ) {
                 loc = loc.concat('&LeftPageAt=')
             } else {
-                loc = loc.concat('?LeftPageAt=')
+                loc = loc.concat('?UserID=').concat(userid);
+                loc = loc.concat('&LeftPageAt=')
             }
             //-- Get the current date and time
             let callTime = new Date();
@@ -173,6 +180,7 @@
         function serverLogSendPageIdleTime( pageTitle = 'Not Set',
                                             howLongSinceInactive = 0,
                                             reportWhenInactiveFor = 10,
+                                            userid = 0,
                                             debug = false) {
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
@@ -193,7 +201,8 @@
             if ( loc.indexOf("?") > 0 ) {
                 loc = loc.concat('&IdlePageForMins=')
             } else {
-                loc = loc.concat('?IdlePageForMins=')
+                loc = loc.concat('?UserID=').concat(userid);
+                loc = loc.concat('&IdlePageForMins=')
             }
             loc = loc.concat(howLongSinceInactive);
 
@@ -229,6 +238,7 @@
         function amplitudeSendClickEvent( pageTitle = 'Not Set',
             linkID = '',
             linkDestination = '',
+            userid = 0,
             debug = false) {
 
             if ( debug ) {
@@ -242,7 +252,8 @@
             let clickProperties = {
                 'pageTitle' : pageTitle,
                 'linkID' : linkID,
-                'linkDestination' : linkDestination
+                'linkDestination' : linkDestination,
+                'user_id' : userid
             };
 
             try {
@@ -258,6 +269,7 @@
         }
 
         function amplitudeSendPageUnload( pageTitle = 'Not Set',
+                                          userid = 0,
                                           debug = false) {
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
@@ -280,7 +292,8 @@
 
             let pageProperties = {
                 'pageTitle'  : pageTitle,
-                'unloadTime' : callTimeToString
+                'unloadTime' : callTimeToString,
+                'user_id' : userid
             };
 
             try {
@@ -298,6 +311,7 @@
         function amplitudeSendPageIdleTime( pageTitle = 'Not Set',
                                             howLongSinceInactive = 0,
                                             reportWhenInactiveFor = 10,
+                                            userid = 0,
                                             debug = false) {
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
@@ -324,6 +338,7 @@
                 'pageTitle'  : pageTitle,
                 'unloadTime' : callTimeToString,
                 'inactiveTime (mins)' : howLongSinceInactive,
+                'user_id' : userid,
             };
 
             if ( howLongSinceInactive >= reportWhenInactiveFor ) {
@@ -346,6 +361,7 @@
 
         /*-- PRIVATE Start Matamo Functions    --*/
         function matamoSendPageUnload(pageTitle = 'Not Set',
+                                      userid = 0,
                                          debug = false) {
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
@@ -382,6 +398,7 @@
         function matamoSendPageIdleTime( pageTitle = 'Not Set',
                                             howLongSinceInactive = 0,
                                             reportWhenInactiveFor = 10,
+                                         userid = 0,
                                             debug = false) {
             let callTime = new Date();
             let callTimeToString = callTime.getFullYear()
