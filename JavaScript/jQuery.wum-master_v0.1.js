@@ -15,7 +15,6 @@
     $.fn.wum = function( options ) {
         /*-- Options for the function --*/
         let settings = $.extend({
-            amplitudeObject : amplitude,
             useAmplitude: true,
             useMatamo:true,
             useServerLogs: true,
@@ -54,7 +53,6 @@
                     //-- be enabled by default
                 }
             }
-
             if ( settings.recordLeavingPage) {
                 $(window).on('beforeunload', function(){
                     if ( settings.useAmplitude) {
@@ -75,6 +73,12 @@
                 $(this).mousemove(function(e) { idleTime = 0; });
                 $(this).keypress(function(e) { idleTime = 0; });
             }
+
+            $('.videometrics').each(function(){
+                $(this).find('iframe, video').each(function(){
+                    console.log( $(this).attr('id') );
+                });
+            });
 
         });
 
@@ -257,7 +261,7 @@
             };
 
             try {
-                settings.amplitudeObject.getInstance().logEvent('link-clicked', clickProperties);
+                amplitude.getInstance().logEvent('link-clicked', clickProperties);
                 if ( debug ) {
                     console.log( "================================================" );
                     console.log( "== WUMAMP: link-clicked event sent            ==" );
@@ -297,7 +301,7 @@
             };
 
             try {
-                settings.amplitudeObject.getInstance().logEvent('leavingPage', pageProperties);
+                amplitude.getInstance().logEvent('leavingPage', pageProperties);
                 if ( debug ) {
                     console.log( "================================================" );
                     console.log( "== WUMAMP: leavingPage event sent             ==" );
@@ -343,7 +347,7 @@
 
             if ( howLongSinceInactive >= reportWhenInactiveFor ) {
                 try {
-                    settings.amplitudeObject.getInstance().logEvent('inactiveTime', pageProperties);
+                    amplitude.getInstance().logEvent('inactiveTime', pageProperties);
                     if (debug) {
                         console.log("================================================");
                         console.log("== WUMAMP: inaciveTime event sent");
