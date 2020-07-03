@@ -447,4 +447,47 @@
 
     return this;
     };
+
+
+
 })(jQuery);
+
+
+
+(function($){
+    $.getScript('https://player.vimeo.com/api/player.js')
+    $('.videometrics').each(function(idx, obj ){
+        console.log(obj);
+        $(obj).find('video').each( function(jdx, vo){
+            try {
+                console.log('Base ID        : ' + $(obj).attr('id'));
+                console.log('Video Title    : ' + $(vo).attr('title'));
+                console.log('Video Time in s: ' + $(vo)[0].currentTime);
+            } catch( error ) {
+                console.error( error );
+            }
+        })
+        $(obj).find('iframe').each( function(jdx, vo){
+            if (~$(vo).attr('src').toLowerCase().indexOf('vimeo') ) {
+                try {
+                    let player = new Vimeo.Player($(vo)[0]);
+                    let seconds = player.getCurrentTime();
+                    console.log('Base ID        : ' + $(obj).attr('id'));
+                    console.log('Video Title    : ' + $(vo).attr('title'));
+                    console.log('Video Time in s: ' + seconds);
+                } catch( error ) {
+                    console.error( error );
+                }
+            } else {
+                //-- Youtube
+            }
+        })
+    });
+})(jQuery);
+
+
+
+$(yo).find('video').each( function(jdx, voif){
+    console.log($(voif).attr('id'));
+    console.log($(voif).get(0).currentTime);
+})
