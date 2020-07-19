@@ -1,0 +1,120 @@
+
+<script>
+    /*
+    *
+    * Put below YouTube iframes.
+    * Add the class "video" to each youtube iframe
+    * Give each YouTube iframe an id you can identify the video with
+    *
+    */
+    //////Config options
+
+    // set how often you want it to save video and scroll depth data. IN SECONDS.
+    var PollInterval = 5;
+
+    // set this vairable as identifiable UserID (same as in analytics)
+    var UserID = "";
+
+    // set base URL site is on. NOTE THE TRAILING SLASH.
+    var baseURL = "https://ctrc.liv.ac.uk/InDevelopment/DataCollection/React/";
+
+
+
+    //***********************************************************************************************//
+
+    //////////////////////////////// DO NOT EDIT BELOW THIS LINE///////////////////////////////////////
+
+    //***********************************************************************************************//
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    // get number of videos
+    var videoCount = $('iframe.video').length;
+    var count = 0;
+    var resultsArray = [];
+    // array of youtube videos
+    var playerArray = new Array(videoCount);
+    // make playerarray 2d
+    for (var i = 0; i < videoCount; i++) {
+        playerArray[i] = new Array(2);
+    }
+
+
+    // call youtube api
+    function onYouTubeIframeAPIReady() {
+        //for each video
+        $('iframe.video').each(function () {
+            // add "?enablejsapi=1" to src
+            var src = $(this).attr('src');
+            src += "?enablejsapi=1";
+            $(this).attr('src', src)
+            // get id
+            var id = $(this).attr('id');
+            // save id and video (player) into player array
+            playerArray[count][0] = id;
+            playerArray[count][1] = new YT.Player(id, {});
+            count++;
+        });
+    }
+
+    // set function to run every PollInterval seconds
+    window.setInterval(function () {
+        // array to stroe all videos and stats
+        var videoArray = []
+        // for each video (player)
+        $.each(playerArray, function (index, value) {
+            // get video id
+            var id = this[0];
+            // get video state, 5 if havent played, 0 if finished
+            var state = this[1].getPlayerState();
+            var hasStarted = (state == -1 || state == 5) ? false : true;
+            var hasfinished = (state == 0) ? true : false;
+
+            var watched;
+            // if they havent presed play
+            if (!hasStarted) {
+                watched = "0%"
+            }
+            // if they've finished watching
+            else if (hasfinished) {
+                watched = "100%"
+            }
+            else {
+                //get time they've watched
+                var time = this[1].getCurrentTime();
+                // get length of video
+                var length = this[1].getDuration()
+                // calculate percentage watched
+                var percentWatched = (time / length) * 100;
+                watched = percentWatched.toFixed(1) + "%";
+            }
+            // create videos object and push to videoArray
+            var videos = { video: id, Watched: watched };
+            videoArray.push(videos);
+        });
+
+        //calculate scroll height
+        var scrollAmount = $(window).scrollTop();
+        var documentHeight = $(document).height();
+        var windowHeight = $(window).height();
+        var scrollPercent = (scrollAmount / (documentHeight - windowHeight)) * 100;
+        var roundScroll = Math.round(scrollPercent) + "%";
+
+        // create object with user id, array of videos (with vid id and sats) and scroll depth
+        var uploadRow = { UserID: UserID, videoArray: videoArray, scrollDepth: roundScroll }
+
+        // call api
+        jQuery.ajax({
+            url: baseURL+"api/WatchVideo",
+            type: "Post",
+            headers: { 'X-SPECTRUMANZ': jQuery('#HMAC').val() },
+            data: JSON.stringify(uploadRow),
+            contentType: 'application/json; charset=utf-8',
+        });
+    }, PollInterval*1000); // convert seconds into miliseconds
+
+
+
+</script>

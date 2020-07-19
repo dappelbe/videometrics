@@ -456,6 +456,8 @@
 
 (function($){
     $.getScript('https://player.vimeo.com/api/player.js')
+    $.getScript("https://www.youtube.com/iframe_api")
+
     $('.videometrics').each(function(idx, obj ){
         console.log(obj);
         $(obj).find('video').each( function(jdx, vo){
@@ -480,6 +482,11 @@
                 }
             } else {
                 //-- Youtube
+                try {
+                    let player =
+                } catch ( error ) {
+                    console.error( error );
+                }
             }
         })
     });
