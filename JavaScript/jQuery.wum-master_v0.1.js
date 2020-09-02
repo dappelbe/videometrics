@@ -24,6 +24,10 @@
             recordIdleTimeOnPage: true,
             whenToReportIdleTime : 10,
             recordVideoActivity: true,
+            videoCheckTime : 3000,
+            videoclass: "videometrics",
+            videoType: "vimeo",
+            recordParagraphActivity : true,
             userID : 0,
             debugMode: false,
         }, options);
@@ -31,7 +35,8 @@
         /*-- Add the event handlers --*/
         $("document").ready(function() {
             pageTitle = window.location.pathname;
-            var playerArray = Array();
+            const playerArray = Array();
+            const vimeoPlayerArray = Array();
 
             if ( settings.recordAClicks ) {
                 $('a').on("click", function(){
@@ -76,51 +81,108 @@
                 $(this).keypress(function(e) { idleTime = 0; });
             }
             if ( settings.recordVideoActivity ) {
-                window.YT.ready(function(){
-                    $('.videometrics').each(function (idx, obj) {
-                        $(obj).find('iframe').each(function (jdx, vo) {
-                            if (~$(vo).attr('src').toLowerCase().indexOf('youtube')) {
-                                try {
-                                    // add "?enablejsapi=1" to src
-                                    var src = $(vo).attr('src');
-                                    let newId = $(vo).attr('title');
-                                    src += "?enablejsapi=1";
-                                    $(vo).attr('src', src)
-                                    let id = $(vo).attr('id');
-                                    if ( id === null || id === undefined ) {
-                                        //-- No ID so lets set the ID to be the title
-                                        if ( newId === null || newId === undefined ) {
-                                            newId = '';
+                 vidactivity = setInterval(function() {
+                    $('.' + settings.videoclass).each(function(){
+                        let identifier = $(this).attr('id');
+                        let iframe = document.querySelector('#' + identifier);
+                        let videoId = $(this).data('id');
+                        let player = null;
+                        let watched = '';
+                        let time = '0';
+                        let length = '0';
+                        if ( settings.videoType.toLowerCase() === 'vimeo') {
+                            //-- Vimeo
+                            try {
+                                $('.videometrics').each(function (idx, obj) {
+                                    $(obj).find('iframe').each(function (jdx, vo) {
+                                        if (~$(vo).attr('src').toLowerCase().indexOf('vimeo')) {
+                                            let player = new Vimeo.Player($(vo)[0]);
+                                            player.getCurrentTime()
+                                                .then(function(time){
+                                                    player.getDuration()
+                                                        .then(function(length){
+                                                            let percentWatched = (time / length) * 100;
+                                                            watched = percentWatched.toFixed(1) + "%";
+                                                            if ( settings.useServerLogs ) {
+                                                                serverLogSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
+                                                            }
+                                                            if ( settings.useAmplitude ) {
+                                                                amplitudeSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
+                                                            }
+                                                            if ( settings.useMatamo ) {
+                                                                matamoSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
+                                                            }
+                                                        });
+                                                });
                                         }
-                                        newId = newId.replace(' ', '_') + Date.now();
-                                        $(vo).attr('id', newId);
-                                    }
-                                    id = $(vo).attr('id');
-                                    let player = new YT.Player(id, { events: {onStateChange: recordYouTubeActivity} });
-                                    let pa = new Array(2);
-                                    pa[0] = id;
-                                    pa[1] = player;
-                                    playerArray.push(pa);
-                                } catch (error) {
-                                    console.error(error);
-                                }
-                            }
-                        });
-                    })
-                });
-                $('.videometrics').each(function (idx, obj) {
-                    $(obj).find('iframe').each(function (jdx, vo) {
-                        if (~$(vo).attr('src').toLowerCase().indexOf('vimeo')) {
-                            let player = new Vimeo.Player($(vo)[0]);
-                            player.on('play', function(){
-                                if ( settings.useServerLogs ) {
-                                    let id
-                                    serverLogSendVideoWatched( window.location.pathname, id, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
-                                }
-                            })
+                                    })
+                                });
+                            } catch ( error) {
+                                console.error( error );
+                            };
+                        } else if (settings.videoType.toLowerCase() === 'youtube') {
+                            //-- Do not use as cannot work due to how site setup
+                            //-- YouTube
+                            try {
+                                $('.videometrics').each(function (idx, obj) {
+                                    $(obj).find('iframe').each(function (jdx, vo) {
+                                        if (~$(vo).attr('src').toLowerCase().indexOf('youtube')) {
+                                            let src = $(vo).attr('src');
+                                            let newId = $(vo).attr('title');
+                                            src += "?enablejsapi=1";
+                                            $(vo).attr('src', src)
+                                            let id = $(vo).attr('id');
+                                            let player = new YT.Player(id);
+
+                                            time = player.getCurrentTime();
+                                            length = player.getDuration();
+                                            let percentWatched = (time / length) * 100;
+                                            watched = percentWatched.toFixed(1) + "%";
+                                            if ( settings.useServerLogs ) {
+                                                serverLogSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
+                                            }
+                                            if ( settings.useAmplitude ) {
+                                                amplitudeSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
+                                            }
+                                            if ( settings.useMatamo ) {
+                                                matamoSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
+                                            }
+                                        }
+                                    })
+                                });
+                            } catch ( error) {
+                                console.error( error );
+                            };
+                        } else {
+                            //-- HTML 5
+                            try {
+                                seconds = player.currentTime;
+                            } catch ( error) {
+                                console.error( error );
+                            };
                         }
-                    })
-                })
+
+
+                    });
+
+                }, settings.videoCheckTime);
+            }
+            if ( settings.recordParagraphActivity ) {
+                $('p').on("hover", function(){
+                    let linkID = $(this).attr('id');
+                    if (typeof linkID === typeof undefined || linkID === false) {
+                        linkID = 'Paragraph Unknown ID';
+                    }
+                    if ( settings.useAmplitude ) {
+                        amplitudeSendPHover( pageTitle, linkID, settings.userID, settings.debugMode);
+                    }
+                    if ( settings.useServerLogs ) {
+                        serverLogSendPHover(pageTitle, linkID, settings.userID, settings.debugMode );
+                    }
+                    if ( settings.useMatamo ) {
+                        matamoSendPHover(pageTitle, linkID, settings.userID, settings.debugMode );
+                    }
+                });
             }
         });
 
@@ -330,6 +392,44 @@
             }
 
         }
+
+        function serverLogSendPHover( pageTitle = 'Not Set',
+                                          linkID = '',
+                                          userid = 0,
+                                          debug = false) {
+
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMSL: pageTitle         => " + pageTitle );
+                console.log( "WUMSL: linkID            => " + linkID );
+                console.log( "WUMSL: UserID            => " + userid );
+                console.log( "================================================" );
+            }
+
+            try {
+
+                //-- Get the current URL
+                let loc = window.location.href;
+                //-- check to see if we have a parameter already
+                if ( loc.indexOf("?") > 0 ) {
+                    loc = loc.concat('&VisitedParagraphID=');
+                } else {
+                    loc = loc.concat('?UserID=').concat(userid);
+                    loc = loc.concat('&VisitedParagraphID=');
+                }
+                loc = loc.concat( linkID );
+
+                $.get(loc);
+                if ( debug ) {
+                    console.log( "================================================" );
+                    console.log( "== WUMSL: P-Hover event sent => " + loc );
+                    console.log( "================================================" );
+                }
+            } catch ( err ) {
+                console.error( "WUMAMP -> " + err.message);
+            }
+        }
+
         /*-- PRIVATE END Sever Log Functions --*/
 
         /*-- PRIVATE START Amplitude Functions --*/
@@ -502,6 +602,37 @@
             }
         }
 
+        function amplitudeSendPHover( pageTitle = 'Not Set',
+                                          linkID = '',
+                                          userid = 0,
+                                          debug = false) {
+
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMAMP: pageTitle         => " + pageTitle );
+                console.log( "WUMAMP: linkID            => " + linkID );
+                console.log( "================================================" );
+            }
+
+            let clickProperties = {
+                'pageTitle' : pageTitle,
+                'paragraphID' : linkID,
+                'user_id' : userid
+            };
+
+            try {
+                amplitude.getInstance().logEvent('p-hover', clickProperties);
+                if ( debug ) {
+                    console.log( "================================================" );
+                    console.log( "== WUMAMP: P-Hover event sent            ==" );
+                    console.log( "================================================" );
+                }
+            } catch ( err ) {
+                console.error( "WUMAMP -> " + err.message);
+            }
+        }
+
+
         /*-- PRIVATE END Amplitude Functions   --*/
 
         /*-- PRIVATE Start Matamo Functions    --*/
@@ -627,48 +758,44 @@
 
         }
 
-        /*-- PRIVATE End Matamo Functions    --*/
+        function matamoSendPHover(pageTitle = 'Not Set',
+                                  linkID = '',
+                                  userid = 0,
+                                  debug = false) {
+            let callTime = new Date();
+            let callTimeToString = callTime.getFullYear()
+                + '-'
+                + callTime.getMonth() + 1
+                + '-'
+                + callTime.getDate()
+                + ' '
+                + callTime.getHours()
+                + ':'
+                + callTime.getMinutes()
+                + ':'
+                + callTime.getSeconds();
 
-        /*-- Private start video recording activity --*/
-        function recordYouTubeActivity() {
-            $.each( playerArray, function(index,value){
-                let id = this[0];
-                // get video state, 5 if havent played, 0 if finished
-                let state = this[1].getPlayerState();
-                let hasStarted = (state == -1 || state == 5) ? false : true;
-                let hasfinished = (state == 0) ? true : false;
+            //-- Get the current URL
+            if ( debug ) {
+                console.log( "================================================" );
+                console.log( "WUMMAT: Paragraph   => " + pageTitle + '-' + linkID );
+                console.log( "================================================" );
+            }
+            try {
+                _paq.push(['trackEvent', 'PageHover', pageTitle + '-' + linkID, callTimeToString]);
+                if (debug) {
+                    console.log("================================================");
+                    console.log("WUMMAT: called PageHover");
+                    console.log("================================================");
+                }
+            } catch (err) {
+                console.error("WUMMAT -> " + err.message);
+            }
 
-                let  watched = '';
-                let  time = '0';
-                // if they havent presed play
-                if (!hasStarted) {
-                    watched = "0%"
-                }
-                // if they've finished watching
-                else if (hasfinished) {
-                    watched = "100%"
-                }
-                else {
-                    //get time they've watched
-                    time = this[1].getCurrentTime();
-                    // get length of video
-                    let length = this[1].getDuration()
-                    // calculate percentage watched
-                    let percentWatched = (time / length) * 100;
-                    watched = percentWatched.toFixed(1) + "%";
-                }
-                if ( settings.useServerLogs ) {
-                    serverLogSendVideoWatched( window.location.pathname, id, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
-                }
-                if ( settings.useAmplitude ) {
-                    amplitudeSendVideoWatched( window.location.pathname, id, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
-                }
-                if ( settings.useMatamo ) {
-                    matamoSendVideoWatched( window.location.pathname, id, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
-                }
-            });
         }
 
+
+        /*-- PRIVATE End Matamo Functions    --*/
 
     return this;
     };
