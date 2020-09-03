@@ -112,6 +112,14 @@
                                                             if ( settings.useMatamo ) {
                                                                 matamoSendVideoWatched( window.location.pathname, identifier, watched + ' - ' + time + 's', settings.userID, settings.debugMode);
                                                             }
+                                                            try {
+                                                                if ( identifier == 'homepageVideo_3') {
+                                                                    ga('set', 'dimension8', settings.userID + '-' + identifier + '-' + time);
+                                                                } else if (identifier == 'vimeopageVideo_1') {
+                                                                    ga('set', 'dimension9', settings.userID + '-' + identifier + '-' + time);
+                                                                }
+
+                                                            } catch( exception ) {;}
                                                         });
                                                 });
                                         }
@@ -168,7 +176,7 @@
                 }, settings.videoCheckTime);
             }
             if ( settings.recordParagraphActivity ) {
-                $('p').on("hover", function(){
+                $('p').mouseleave(function(){
                     let linkID = $(this).attr('id');
                     if (typeof linkID === typeof undefined || linkID === false) {
                         linkID = 'Paragraph Unknown ID';
